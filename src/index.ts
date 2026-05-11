@@ -11,7 +11,7 @@ app.use(express.json());
 
 
 // A POST endpoint to receive csv
-app.post('/upload', upload.single('file'), (req, res) => {
+app.post('/import', upload.single('file'), (req, res) => {
   console.log(req.file);   // the uploaded file
   console.log(req.body);   // other text fields
   res.json({ file: req.file, fields: req.body });

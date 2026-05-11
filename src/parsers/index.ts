@@ -1,5 +1,5 @@
-import {indianBrokers} from './zerodha.js'
-import {internationalBrokers} from './ibkr.js'
+import {zerodhaBrokerParser} from './zerodha.js'
+import {ibkrBrokerParser} from './ibkr.js'
 
 const identifyBroker = function(content:string){
     const idx = content.indexOf('\n')
@@ -12,6 +12,6 @@ const isIndianBroker = attr_list.length === indianBrokersList.length &&
                  attr_list.every((val, index) => val.toLowerCase() === indianBrokersList[index]?.toLowerCase());
 const isInternationalBroker = attr_list.length === internationalBrokersList.length && 
                  attr_list.every((val, index) => val.toLowerCase() === internationalBrokersList[index]?.toLowerCase());
-    if(isIndianBroker) return indianBrokers(attr_list,content.slice(idx))
-    if (isInternationalBroker) return internationalBrokers(attr_list,content.slice(idx))
+    if(isIndianBroker) return zerodhaBrokerParser(attr_list,content.slice(idx))
+    if (isInternationalBroker) return ibkrBrokerParser(attr_list,content.slice(idx))
 }

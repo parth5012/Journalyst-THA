@@ -46,7 +46,7 @@ function normalizeSymbol(symbol: string, assetClass: string): string {
 // TradeID | AccountID | Symbol | DateTime | Buy/Sell | Quantity | TradePrice | Currency | Commission | NetAmount | AssetClass
 //    0         1           2         3           4          5           6            7            8            9          10
 
-export const internationalBrokers = function (
+export const ibkrBrokerParser = function (
     attributes: Array<string>,
     content: string
 ): ParseResult {
