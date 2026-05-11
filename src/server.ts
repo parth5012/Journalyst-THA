@@ -2,10 +2,13 @@ import express from 'express';
 import type { Request, Response, NextFunction } from 'express';
 import multer from 'multer';
 import fs from 'fs/promises';
+import path from 'path';
 import { identifyBroker } from './parsers/index.ts';
 
 const app = express();
-const upload = multer({ dest: 'uploads/' });
+const uploadDir = path.join(process.cwd(), 'uploads');
+await fs.mkdir(uploadDir, { recursive: true });
+const upload = multer({ dest: uploadDir });
 
 app.use(express.json());
 

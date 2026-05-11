@@ -105,10 +105,30 @@ Rows are validated for:
 
 ## Run tests
 
-Execute parser and endpoint tests with:
+Execute parser, endpoint, and cleanup tests with:
 
 ```bash
 npm test
+```
+
+Individual test scripts:
+
+- `npm run test:unit` — parser validation
+- `npm run test:api` — POST endpoint upload tests
+- `npm run test:cleanup` — temp upload cleanup logic
+
+## Cleanup stale uploads
+
+Temporary CSV files are saved to `uploads/` during ingestion. The server removes each file after parsing, and stale files older than 24 hours can be cleaned manually with:
+
+```bash
+npm run cleanup-uploads
+```
+
+You can override the cleanup threshold with an environment variable:
+
+```bash
+CLEANUP_UPLOAD_MAX_AGE_MS=3600000 npm run cleanup-uploads
 ```
 
 ## Future improvements
