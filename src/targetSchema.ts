@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-const TradeSchema = z.object({
+export const TradeSchema = z.object({
 symbol: z.string().min(1), // e.g. "AAPL", "EUR/USD", "BTC/USDT"
 side: z.enum(["BUY", "SELL"]),
 quantity: z.number().positive(),
@@ -13,4 +13,4 @@ rawData: z.record(z.string(), z.unknown()), // original row as key-value pairs
 });
 
 
-type Trade = z.infer<typeof TradeSchema>;
+export type Trade = z.infer<typeof TradeSchema>;
