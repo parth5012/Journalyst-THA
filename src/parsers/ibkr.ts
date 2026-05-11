@@ -22,10 +22,10 @@ function parseIbkrDate(raw: string): string {
     }
 
     // MM/DD/YYYY fallback (e.g. row 4 in the PDF sample)
-    const parts = raw.split('/');
+    const parts : Array<string> = raw.split('/');
     if (parts.length === 3) {
         const [mm, dd, yyyy] = parts;
-        const d = new Date(`${yyyy}-${mm}-${dd}T00:00:00Z`);
+        const d: Date = new Date(`${yyyy}-${mm}-${dd}T00:00:00Z`);
         if (isNaN(d.getTime())) throw new Error(`Invalid date: '${raw}'`);
         return d.toISOString();
     }
@@ -60,13 +60,13 @@ export const ibkrBrokerParser = function (
         rowIndex++;
         const list = line.split(',');
 
-        const rawSymbol    = list[2]  ?? '';
-        const rawDateTime  = list[3]  ?? '';
-        const rawSide      = list[4]  ?? '';
-        const rawQuantity  = list[5]  ?? '';
-        const rawPrice     = list[6]  ?? '';
-        const rawCurrency  = list[7]  ?? '';
-        const rawAssetClass = list[10] ?? '';
+        const rawSymbol   :string = list[2]  ?? '';
+        const rawDateTime :string = list[3]  ?? '';
+        const rawSide     :string = list[4]  ?? '';
+        const rawQuantity :string = list[5]  ?? '';
+        const rawPrice    :string = list[6]  ?? '';
+        const rawCurrency :string = list[7]  ?? '';
+        const rawAssetClass : string = list[10] ?? '';
 
         // rawData stores ALL fields — nothing is discarded (as required by the THA)
         const rawData: Record<string, unknown> = {

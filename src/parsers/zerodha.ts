@@ -6,11 +6,11 @@ const parseZerodhaDate = function(raw:string){
     if (!raw || raw.trim() === '') throw new Error(`Missing date`)
     
     if (raw.includes('T')) {
-        const d = new Date(raw);
+        const d :Date = new Date(raw);
         if (isNaN(d.getTime())) throw new Error(`Invalid date: '${raw}'`);
         return d.toISOString();
     }
-    const parts = raw.split('/');
+    const parts :Array<string> = raw.split('/');
     if (parts.length === 3) {
         const [dd, mm, yyyy] = parts;
         const d = new Date(`${yyyy}-${mm}-${dd}T00:00:00Z`);
@@ -30,7 +30,7 @@ export const zerodhaBrokerParser = function(attributes:Array<string>,content:str
         rowIndex++;
         const list = line.split(',');
 
-        const symbol = list[0];
+        const symbol  = list[0];
         const rawQuantity = parseFloat(list[4] ?? '0');
         const rawPrice = parseFloat(list[5] ?? '0');
         const rawSide = list[3];
