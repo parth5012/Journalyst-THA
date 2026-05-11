@@ -2,6 +2,7 @@ import { TradeSchema } from "../targetSchema.js";
 import type { ParseResult, TradeError } from "../types.js";
 
 const parseZerodhaDate = function(raw:string){
+    
     if (!raw || raw.trim() === '') throw new Error(`Missing date`)
     
     if (raw.includes('T')) {
@@ -98,5 +99,15 @@ export const zerodhaBrokerParser = function(attributes:Array<string>,content:str
         })
         trades.push(instance)
     }
-    return trades;
-}
+    return {
+        broker: 'zerodha',
+        trades,
+        errors,
+        summary: {
+            total: rowIndex,
+            valid: trades.length,
+            skipped: errors.length,
+        },
+    };
+};
+
