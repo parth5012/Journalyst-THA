@@ -1,113 +1,80 @@
-import { TradeSchema } from "../targetSchema.js";
-import type { ParseResult, TradeError } from "../types.js";
+import { TradeSchema } from "../targetSchema.ts";
+import type { ParseResult } from "../types.ts";
+import {
+  createTradeError,
+  parseRequiredString,
+  parsePositiveNumber,
+  parseCsvDate,
+} from "./parserUtils.ts";
 
-const parseZerodhaDate = function(raw:string){
-    
-    if (!raw || raw.trim() === '') throw new Error(`Missing date`)
-    
-    if (raw.includes('T')) {
-        const d :Date = new Date(raw);
-        if (isNaN(d.getTime())) throw new Error(`Invalid date: '${raw}'`);
-        return d.toISOString();
+export const zerodhaBrokerParser = function (attributes: string[], content: string): ParseResult {
+  const trades: ParseResult['trades'] = [];
+  const errors: ParseResult['errors'] = [];
+  let rowIndex = 0;
+
+  for (const line of content.split('\n')) {
+    const rawLine = line.trim();
+    if (!rawLine) continue; // skip empty lines
+
+    rowIndex++;
+    const list = rawLine.split(',');
+
+    const symbol = parseRequiredString(list[0], 'symbol', rowIndex, rawLine, errors);
+    if (!symbol) continue;
+
+    const rawSide = list[3] ?? '';
+    const side = rawSide.trim().toUpperCase();
+    if (side !== 'BUY' && side !== 'SELL') {
+      errors.push(createTradeError(rowIndex, `Invalid side value: '${rawSide}'. Expected BUY or SELL.`, rawLine));
+      continue;
     }
-    const parts :Array<string> = raw.split('/');
-    if (parts.length === 3) {
-        const [dd, mm, yyyy] = parts;
-        const d = new Date(`${yyyy}-${mm}-${dd}T00:00:00Z`);
-        if (isNaN(d.getTime())) throw new Error(`Invalid date: '${raw}'`);
-        return d.toISOString();
-    }
-    throw new Error(`Unrecognized date format: '${raw}'`);
-}
 
+    const quantity = parsePositiveNumber(list[4], 'quantity', rowIndex, rawLine, errors);
+    if (quantity === null) continue;
 
-export const zerodhaBrokerParser = function(attributes:Array<string>,content:string){
-    const trades: ParseResult['trades'] = [];
-    const errors: TradeError[] = [];
-    let rowIndex = 0;
-    for(const line of content.split('\n')){
-        if (!line.trim()) continue  // also skip empty lines
-        rowIndex++;
-        const list = line.split(',');
+    const price = parsePositiveNumber(list[5], 'price', rowIndex, rawLine, errors);
+    if (price === null) continue;
 
-        const symbol  = list[0];
-        const rawQuantity = parseFloat(list[4] ?? '0');
-        const rawPrice = parseFloat(list[5] ?? '0');
-        const rawSide = list[3];
-        const rawData = {
-            'isin': list[1],
-            'trade_id': list[6],
-            'order_id': list[7],
-            'exchange': list[8],
-            'segment': list[9]
-        }
-        const rawDate = list[2];
+    const executedAt = parseCsvDate(list[2], 'dmy', rowIndex, rawLine, errors);
+    if (!executedAt) continue;
 
-        const side = rawSide?.toUpperCase();
-        if (!side) {
-            errors.push({
-                row: rowIndex,
-                reason: `Unrecognized side value: '${rawSide}'. Expected BOT or SLD.`,
-                rawLine: line,
-            });
-            continue;
-        }
-
-        const quantity = rawQuantity;
-        if (isNaN(quantity) || quantity <= 0) {
-            errors.push({
-                row: rowIndex,
-                reason: `Quantity must be positive, got '${rawQuantity}'`,
-                rawLine: line,
-            });
-            continue;
-        }
-
-        const price = rawPrice;
-        if (isNaN(price) || price <= 0) {
-            errors.push({
-                row: rowIndex,
-                reason: `Price must be positive, got '${rawPrice}'`,
-                rawLine: line,
-            });
-            continue;
-        }
-
-        let executedAt: string;
-        try {
-            executedAt = parseZerodhaDate(rawDate ?? '');
-        } catch (e) {
-            errors.push({
-                row: rowIndex,
-                reason: (e as Error).message,
-                rawLine: line,
-            });
-            continue;
-        }
-        // Parse and validate with Zod
-        const instance = TradeSchema.parse({
-            symbol,
-            side,
-            quantity,
-            price,
-            totalAmount: quantity*price,
-            currency: 'INR',
-            executedAt,
-            broker: 'zerodha',
-            rawData
-            
-        })
-        trades.push(instance)
-    }
-    return {
-        broker: 'zerodha',
-        trades,
-        errors,
-        summary: {
-            total: rowIndex,
-            valid: trades.length,
-            skipped: errors.length,
-        },
+    const rawData = {
+      isin: list[1],
+      trade_id: list[6],
+      order_id: list[7],
+      exchange: list[8],
+      segment: list[9],
     };
+
+    const result = TradeSchema.safeParse({
+      symbol,
+      side,
+      quantity,
+      price,
+      totalAmount: quantity * price,
+      currency: 'INR',
+      executedAt,
+      broker: 'zerodha',
+      rawData,
+    });
+
+    if (!result.success) {
+      errors.push(createTradeError(rowIndex, result.error.issues.map((issue) => issue.message).join('; '), rawLine));
+      continue;
+    }
+
+    trades.push(result.data);
+  }
+
+  return {
+    broker: 'zerodha',
+    trades,
+    errors,
+    summary: {
+      total: rowIndex,
+      valid: trades.length,
+      skipped: errors.length,
+    },
+  };
 };
 

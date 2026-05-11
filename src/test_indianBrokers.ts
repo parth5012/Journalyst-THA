@@ -1,61 +1,32 @@
-import { TradeSchema } from "./targetSchema.js";
+import { identifyBroker } from './parsers/index.ts';
 
-// ---- copy of indianBrokers (exported for testing) ----
-const indianBrokers = function (attributes: Array<string>, content: string) {
-    const trades = [];
-    for (const line of content.split('\n')) {
-        if (!line.trim()) continue;
-        const list = line.split(',');
-        if (list.length < 6) { console.warn('Skipping malformed row:', line); continue; }
+const sampleCsv = `symbol,isin,trade_date,trade_type,quantity,price,trade_id,order_id,exchange,segment
+RELIANCE,INE002A01018,15/01/2024,buy,10,2450.50,TRD001,ORD001,NSE,EQ
+INFY,INE009A01021,15/01/2024,sell,5,1780.25,TRD002,ORD002,BSE,EQ
+TCS,INE467B01029,15/01/2024,buy,2,3920.00,TRD003,ORD003,NSE,EQ`;
 
-        const quantity = parseFloat(list[4] ?? '0');
-        const price    = parseFloat(list[5] ?? '0');
+const result = identifyBroker(sampleCsv);
 
-        const instance = TradeSchema.parse({
-            symbol:      list[0] ?? '',
-            side:        list[3]?.toUpperCase(),
-            quantity,
-            price,
-            totalAmount: quantity * price,
-            currency:    'INR',
-            executedAt:  new Date(list[2] ?? '').toISOString(),
-            broker:      'Indian',
-            rawData: {
-                isin:     list[1],
-                trade_id: list[6],
-                order_id: list[7],
-                exchange: list[8],
-                segment:  list[9],
-            },
-        });
-        trades.push(instance);
-    }
-    return trades;
-};
+console.log(`Parsed trades: ${result.trades.length}`);
+console.log(`Skipped rows: ${result.errors.length}`);
+console.log('Summary:', result.summary);
 
-// ---- sample CSV rows (no header) ----
-// Columns: symbol, isin, executedAt, side, quantity, price, trade_id, order_id, exchange, segment
-const sampleCSV = `RELIANCE,INE002A01018,2024-01-15T09:15:00Z,buy,10,2450.50,TRD001,ORD001,NSE,EQ
-INFY,INE009A01021,2024-01-15T10:30:00Z,sell,5,1780.25,TRD002,ORD002,BSE,EQ
-TCS,INE467B01029,2024-01-15T11:00:00Z,buy,2,3920.00,TRD003,ORD003,NSE,EQ`;
+if (result.errors.length) {
+  console.log('\nValidation errors:');
+  for (const error of result.errors) {
+    console.log(`- row ${error.row}: ${error.reason}`);
+  }
+}
 
-// ---- run ----
-try {
-    const results = indianBrokers([], sampleCSV);
-    console.log(`\n✅ Parsed ${results.length} trades successfully:\n`);
-    results.forEach((t, i) => {
-        console.log(`Trade ${i + 1}:`);
-        console.log(`  Symbol:      ${t.symbol}`);
-        console.log(`  Side:        ${t.side}`);
-        console.log(`  Quantity:    ${t.quantity}`);
-        console.log(`  Price:       ₹${t.price}`);
-        console.log(`  Total Amt:   ₹${t.totalAmount}`);
-        console.log(`  Currency:    ${t.currency}`);
-        console.log(`  ExecutedAt:  ${t.executedAt}`);
-        console.log(`  Broker:      ${t.broker}`);
-        console.log(`  Exchange:    ${t.rawData['exchange']}`);
-        console.log('');
-    });
-} catch (err) {
-    console.error('❌ Parsing failed:', err);
+for (const [index, trade] of result.trades.entries()) {
+  console.log(`\nTrade ${index + 1}:`, {
+    symbol: trade.symbol,
+    side: trade.side,
+    quantity: trade.quantity,
+    price: trade.price,
+    totalAmount: trade.totalAmount,
+    currency: trade.currency,
+    executedAt: trade.executedAt,
+    broker: trade.broker,
+  });
 }

@@ -1,5 +1,4 @@
-import type { Trade} from './targetSchema.js';
-
+import type { Trade} from './targetSchema.ts';
 
 export type TradeError = {
   row: number;
@@ -14,4 +13,4 @@ export type ParseResult = {
   summary: { total: number; valid: number; skipped: number };
 };
 
-export type BrokerParser = (csvText: string) => ParseResult;
+export type BrokerParser = (attributes: string[], content: string) => ParseResult;

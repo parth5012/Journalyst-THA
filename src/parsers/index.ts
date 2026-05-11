@@ -1,21 +1,76 @@
-import {zerodhaBrokerParser} from './zerodha.js'
-import {ibkrBrokerParser} from './ibkr.js'
+import { zerodhaBrokerParser } from './zerodha.ts';
+import { ibkrBrokerParser } from './ibkr.ts';
+import type { ParseResult } from '../types.ts';
 
-const identifyBroker = function(content:string){
-    const idx :number = content.indexOf('\n')
-    const attributes: string = content.slice(0,idx)
-    const attr_list: Array<string> = attributes.split(',')
-    const zerodhaBrokerList:Array<string> = ['symbol','isin','trade_date','trade_type','quantity','price','trade_id','order_id','exchange','segment'
-];
-    const ibkrBrokerList:Array<string> = ['TradeID','AccountID','Symbol','DateTime','Buy/Sell','Quantity','TradePrice','Currency','Commission','NetAmount','AssetClass'
-];
+export function identifyBroker(content: string): ParseResult {
+  const idx = content.indexOf('\n');
+  if (idx === -1) {
+    return {
+      broker: 'unknown',
+      trades: [],
+      errors: [
+        {
+          row: 0,
+          reason: 'Malformed CSV: missing header row.',
+          rawLine: content.trim(),
+        },
+      ],
+      summary: { total: 0, valid: 0, skipped: 1 },
+    };
+  }
 
-const isIndianBroker:boolean = attr_list.length === zerodhaBrokerList.length && 
-                 attr_list.every((val, index) => val.toLowerCase() === zerodhaBrokerList[index]?.toLowerCase());
-const isInternationalBroker : boolean = attr_list.length === ibkrBrokerList.length && 
-                 attr_list.every((val, index) => val.toLowerCase() === ibkrBrokerList[index]?.toLowerCase());
-    if(isIndianBroker) return zerodhaBrokerParser(attr_list,content.slice(idx))
-    if (isInternationalBroker) return ibkrBrokerParser(attr_list,content.slice(idx))
+  const headerLine = content.slice(0, idx).replace(/\uFEFF/g, '').trim();
+  const body = content.slice(idx + 1);
+  const attrList = headerLine.split(',').map((column) => column.trim());
 
-    throw new Error('Broker UnIdentified!!');
+  const zerodhaBrokerList = [
+    'symbol',
+    'isin',
+    'trade_date',
+    'trade_type',
+    'quantity',
+    'price',
+    'trade_id',
+    'order_id',
+    'exchange',
+    'segment',
+  ];
+
+  const ibkrBrokerList = [
+    'TradeID',
+    'AccountID',
+    'Symbol',
+    'DateTime',
+    'Buy/Sell',
+    'Quantity',
+    'TradePrice',
+    'Currency',
+    'Commission',
+    'NetAmount',
+    'AssetClass',
+  ];
+
+  const isIndianBroker =
+    attrList.length === zerodhaBrokerList.length &&
+    attrList.every((header, index) => header.toLowerCase() === zerodhaBrokerList[index]?.toLowerCase());
+
+  const isInternationalBroker =
+    attrList.length === ibkrBrokerList.length &&
+    attrList.every((header, index) => header.toLowerCase() === ibkrBrokerList[index]?.toLowerCase());
+
+  if (isIndianBroker) return zerodhaBrokerParser(attrList, body);
+  if (isInternationalBroker) return ibkrBrokerParser(attrList, body);
+
+  return {
+    broker: 'unknown',
+    trades: [],
+    errors: [
+      {
+        row: 0,
+        reason: `Broker header not recognized: '${headerLine}'.`,
+        rawLine: headerLine,
+      },
+    ],
+    summary: { total: 0, valid: 0, skipped: 1 },
+  };
 }
