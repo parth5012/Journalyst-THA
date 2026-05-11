@@ -1,5 +1,5 @@
-import app from './server.ts';
-import { cleanupUploads } from './utils/cleanupUploads.ts';
+import app from './server.js';
+import { cleanupUploads } from './utils/cleanupUploads.js';
 
 const PORT = 3000;
 
